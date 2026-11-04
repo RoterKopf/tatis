@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Наше Пространство</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.2s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        canvas { touch-action: none; }
+    </style>
+</head>
+<body class="pb-24 max-w-md mx-auto min-h-screen relative">
+
+    <!-- Верхняя панель -->
+    <header class="p-4 flex justify-between items-center sticky top-0 z-20 glass rounded-b-2xl mb-4">
+        <div class="flex items-center gap-2">
+            <span class="text-xl font-bold bg-gradient-to-r from-pink-500 to-violet-500 bg-clip-text text-transparent">Couple AI</span>
+            <span id="sync-badge" class="bg-slate-800 text-slate-400 text-[11px] px-2.5 py-1 rounded-full border border-slate-700 flex items-center gap-1.5">
+                <span id="sync-dot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span id="sync-text">Локально</span>
+            </span>
+        </div>
+        <button onclick="switchTab('settings')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-gear text-lg"></i></button>
+    </header>
+
+    <main class="px-4 space-y-4">
+
+        <!-- ВКЛАДКА 1: ГЛАВНАЯ -->
+        <section id="tab-home" class="tab-content active space-y-4">
+            <!-- Счетчик дней -->
+            <div class="glass rounded-3xl p-6 text-center relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-32 h-32 bg-pink-500/10 rounded-full blur-2xl"></div>
+                <p class="text-slate-400 text-sm mb-1">Мы вместе уже</p>
+                <div id="days-counter" class="text-5xl font-extrabold text-white my-2">0</div>
+                <p class="text-pink-400 text-sm font-medium">дней</p>
+                <div class="mt-4 pt-4 border-t border-slate-700/50 flex justify-around text-xs text-slate-400">
+                    <div>🎂 24 ноя: <span id="bday1" class="text-white font-semibold">-- дн.</span></div>
+                    <div>🎂 26 дек: <span id="bday2" class="text-white font-semibold">-- дн.</span></div>
+                </div>
+            </div>
+
+            <!-- Статусы обоих партнеров -->
+            <div class="grid grid-cols-2 gap-3">
+                <div class="glass rounded-2xl p-4 text-center">
+                    <p id="label-name1" class="text-xs text-slate-400 mb-2">Ислам</p>
+                    <button onclick="changeMood('p1')" id="mood-p1" class="text-4xl hover:scale-110 transition">😊</button>
+                    <p class="text-[11px] text-slate-400 mt-2">Нажми для смены</p>
+                </div>
+                <div class="glass rounded-2xl p-4 text-center">
+                    <p id="label-name2" class="text-xs text-slate-400 mb-2">Таня</p>
+                    <button onclick="changeMood('p2')" id="mood-p2" class="text-4xl hover:scale-110 transition">🥰</button>
+                    <p class="text-[11px] text-slate-400 mt-2">Нажми для смены</p>
+                </div>
+            </div>
+
+            <!-- Дистанция между партнерами -->
+            <div class="glass rounded-2xl p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center text-pink-500">
+                        <i class="fa-solid fa-location-dot text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-400">Расстояние между вами</p>
+                        <p id="distance-text" class="text-base font-bold text-white">Ожидание GPS...</p>
+                    </div>
+                </div>
+                <button onclick="updateLocation()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 px-3 rounded-xl border border-slate-700 transition">Обновить GPS</button>
+            </div>
+
+            <!-- Быстрый вопрос дня -->
+            <div class="glass rounded-2xl p-4 border-l-4 border-l-pink-500">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold uppercase tracking-wider text-pink-400">Активный вопрос</span>
+                    <button onclick="switchTab('ai')" class="text-xs text-slate-400 underline">Ответить →</button>
+                </div>
+                <p id="daily-q-preview" class="text-sm text-slate-200">Какое наше общее воспоминание заставляет тебя улыбаться чаще всего?</p>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 2: ИИ ИГРЫ И ВОПРОСЫ -->
+        <section id="tab-ai" class="tab-content space-y-4">
+            <div class="glass rounded-2xl p-4">
+                <p class="text-xs text-slate-400 mb-3">Выбери режим (вопрос сразу обновится у обоих):</p>
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <button onclick="generateAI('deep')" class="bg-pink-600/20 border border-pink-500/40 text-pink-300 py-2.5 px-3 rounded-xl text-xs font-medium text-left">💬 Глубокий вопрос</button>
+                    <button onclick="generateAI('who')" class="bg-violet-600/20 border border-violet-500/40 text-violet-300 py-2.5 px-3 rounded-xl text-xs font-medium text-left">👉 Кто вероятнее...</button>
+                    <button onclick="generateAI('never')" class="bg-blue-600/20 border border-blue-500/40 text-blue-300 py-2.5 px-3 rounded-xl text-xs font-medium text-left">🙊 Я никогда не...</button>
+                    <button onclick="generateAI('date')" class="bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 py-2.5 px-3 rounded-xl text-xs font-medium text-left">✨ Идея для вечера</button>
+                </div>
+
+                <div class="bg-slate-900/90 rounded-xl p-4 min-h-[100px] flex items-center justify-center text-center border border-slate-800">
+                    <p id="ai-output" class="text-base font-medium text-slate-100">Какое наше общее воспоминание заставляет тебя улыбаться чаще всего?</p>
+                </div>
+
+                <div class="mt-4 space-y-2">
+                    <textarea id="ai-answer-input" rows="2" placeholder="Напиши свой ответ..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-sm text-white focus:outline-none focus:border-pink-500"></textarea>
+                    <button onclick="saveAnswer()" class="w-full bg-gradient-to-r from-pink-500 to-violet-600 py-2.5 rounded-xl font-semibold text-sm shadow-lg shadow-pink-500/20">Отправить ответ</button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <h3 class="text-xs font-semibold uppercase text-slate-400 px-1">Общая лента ответов</h3>
+                <div id="answers-history" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 3: СОВМЕСТНЫЙ ХОЛСТ -->
+        <section id="tab-draw" class="tab-content space-y-4">
+            <div class="glass rounded-2xl p-4 text-center">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs text-slate-400">Общий холст в реальном времени</span>
+                    <div class="flex gap-2 items-center">
+                        <input type="color" id="draw-color" value="#ec4899" class="w-6 h-6 rounded border-0 bg-transparent">
+                        <button onclick="clearCanvas()" class="text-xs bg-slate-800 px-2.5 py-1 rounded-lg text-slate-300">Очистить</button>
+                    </div>
+                </div>
+                <canvas id="canvas" width="320" height="320" class="bg-slate-950 rounded-xl mx-auto border border-slate-800 w-full max-w-[320px]"></canvas>
+                <p class="text-[11px] text-slate-400 mt-3">Каждая линия сразу передается партнеру</p>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 4: ПЛАНЫ -->
+        <section id="tab-bucket" class="tab-content space-y-4">
+            <div class="glass rounded-2xl p-4">
+                <div class="flex gap-2 mb-4">
+                    <input type="text" id="todo-input" placeholder="Добавить общую цель или желание..." class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-pink-500">
+                    <button onclick="addTodo()" class="bg-pink-500 px-4 rounded-xl font-bold">+</button>
+                </div>
+                <div id="todo-list" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 5: НАСТРОЙКИ -->
+        <section id="tab-settings" class="tab-content space-y-4">
+            <div class="glass rounded-2xl p-4 space-y-4">
+                <h2 class="font-bold text-base">Настройки и Синхронизация</h2>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Кто сейчас пользуется этим телефоном?</label>
+                    <select id="set-role" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                        <option value="p1">Партнер 1 (Ислам)</option>
+                        <option value="p2">Партнер 2 (Таня)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Ваши имена</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="set-name1" placeholder="Ислам" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                        <input type="text" id="set-name2" placeholder="Таня" class="bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Дата начала отношений</label>
+                    <input type="date" id="set-date" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                </div>
+
+                <div class="pt-2 border-t border-slate-800">
+                    <label class="text-xs text-emerald-400 font-semibold block mb-1">Ссылка на базу Firebase (Database URL)</label>
+                    <input type="text" id="set-dburl" placeholder="https://my-couple-app-default-rtdb.firebaseio.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                    <p class="text-[11px] text-slate-400 mt-1">Вставь одинаковую ссылку на обоих телефонах для мгновенной синхронизации.</p>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800">
+                    <label class="text-xs text-pink-400 font-semibold block mb-1">Ключ OpenRouter API (для DeepSeek)</label>
+                    <input type="password" id="set-apikey" placeholder="sk-or-v1-..." class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white">
+                </div>
+
+                <button onclick="saveSettings()" class="w-full bg-emerald-600 py-2.5 rounded-xl font-semibold text-sm">Сохранить и подключить</button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Нижняя навигация -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto glass border-t border-slate-800 flex justify-around py-3 px-2 z-20 rounded-t-2xl">
+        <button onclick="switchTab('home')" class="nav-btn text-pink-500 flex flex-col items-center gap-1 text-xs"><i class="fa-solid fa-heart text-lg"></i><span>Главная</span></button>
+        <button onclick="switchTab('ai')" class="nav-btn text-slate-400 flex flex-col items-center gap-1 text-xs"><i class="fa-solid fa-wand-magic-sparkles text-lg"></i><span>ИИ-Игры</span></button>
+        <button onclick="switchTab('draw')" class="nav-btn text-slate-400 flex flex-col items-center gap-1 text-xs"><i class="fa-solid fa-paintbrush text-lg"></i><span>Холст</span></button>
+        <button onclick="switchTab('bucket')" class="nav-btn text-slate-400 flex flex-col items-center gap-1 text-xs"><i class="fa-solid fa-list-check text-lg"></i><span>Планы</span></button>
+    </nav>
+
+    <!-- Подключение Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const defaultData = {
+            name1: 'Ислам',
+            name2: 'Таня',
+            startDate: '2026-02-14',
+            mood1: '😊',
+            mood2: '🥰',
+            loc1: null,
+            loc2: null,
+            currentQuestion: 'Какое наше общее воспоминание заставляет тебя улыбаться чаще всего?',
+            todos: [
+                { text: 'Выбраться за город на выходные', done: false },
+                { text: 'Приготовить дома идеальный ужин вдвоем', done: false },
+                { text: 'Сходить на ночной киносеанс', done: true }
+            ],
+            history: [],
+            canvasData: ''
+        };
+
+        let localConfig = JSON.parse(localStorage.getItem('coupleLocalConfig')) || {
+            role: 'p1',
+            dbUrl: '',
+            apiKey: ''
+        };
+
+        let appData = JSON.parse(localStorage.getItem('coupleSharedData')) || defaultData;
+        let dbRef = null;
+        let isDrawing = false;
+        const moods = ['😊', '🥰', '😴', '☕', '💻', '🍕', '🥺', '🔥'];
+
+        // Подключение к Firebase
+        function initCloudSync() {
+            const dot = document.getElementById('sync-dot');
+            const txt = document.getElementById('sync-text');
+
+            if (!localConfig.dbUrl) {
+                dot.className = "w-2 h-2 rounded-full bg-amber-400";
+                txt.innerText = "Локально";
+                return;
+            }
+
+            try {
+                const cleanUrl = localConfig.dbUrl.trim().replace(/\/$/, "");
+                const app = initializeApp({ databaseURL: cleanUrl }, "coupleApp_" + Date.now());
+                const db = getDatabase(app);
+                dbRef = ref(db, 'coupleSpace');
+
+                onValue(dbRef, (snapshot) => {
+                    const cloudData = snapshot.val();
+                    dot.className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                    txt.innerText = "Онлайн";
+
+                    if (cloudData) {
+                        appData = {
+                            ...defaultData,
+                            ...cloudData,
+                            todos: cloudData.todos || [],
+                            history: cloudData.history || []
+                        };
+                        localStorage.setItem('coupleSharedData', JSON.stringify(appData));
+                        renderAll();
+                    } else {
+                        pushData();
+                    }
+                }, () => {
+                    dot.className = "w-2 h-2 rounded-full bg-rose-500";
+                    txt.innerText = "Ошибка БД";
+                });
+            } catch (e) {
+                dot.className = "w-2 h-2 rounded-full bg-rose-500";
+                txt.innerText = "Неверный URL";
+            }
+        }
+
+        function pushData() {
+            localStorage.setItem('coupleSharedData', JSON.stringify(appData));
+            renderAll();
+            if (dbRef) {
+                set(dbRef, appData);
+            }
+        }
+
+        // Расчет дистанции по координатам (формула Гаверсинуса)
+        function calcDistance(loc1, loc2) {
+            if (!loc1 || !loc2) return "Ожидание GPS обоих...";
+            const R = 6371;
+            const dLat = (loc2.lat - loc1.lat) * Math.PI / 180;
+            const dLon = (loc2.lon - loc1.lon) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 +
+                      Math.cos(loc1.lat * Math.PI / 180) * Math.cos(loc2.lat * Math.PI / 180) *
+                      Math.sin(dLon / 2) ** 2;
+            const d = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            if (d < 0.1) return "Рядом друг с другом ❤️";
+            if (d < 1) return `${Math.round(d * 1000)} м`;
+            return `${d.toFixed(1)} км`;
+        }
+
+        function renderAll() {
+            // Дни вместе
+            const start = new Date(appData.startDate);
+            const now = new Date();
+            const diffDays = Math.max(0, Math.floor((now - start) / (1000 * 60 * 60 * 24)));
+            document.getElementById('days-counter').innerText = diffDays;
+
+            // Дни рождения
+            function daysUntil(month, day) {
+                let target = new Date(now.getFullYear(), month - 1, day);
+                if (now > target) target.setFullYear(now.getFullYear() + 1);
+                return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+            }
+            document.getElementById('bday1').innerText = daysUntil(11, 24) + ' дн.';
+            document.getElementById('bday2').innerText = daysUntil(12, 26) + ' дн.';
+
+            // Имена и статусы
+            document.getElementById('label-name1').innerText = appData.name1;
+            document.getElementById('label-name2').innerText = appData.name2;
+            document.getElementById('mood-p1').innerText = appData.mood1;
+            document.getElementById('mood-p2').innerText = appData.mood2;
+
+            // Дистанция
+            document.getElementById('distance-text').innerText = calcDistance(appData.loc1, appData.loc2);
+
+            // Вопросы и история
+            document.getElementById('daily-q-preview').innerText = appData.currentQuestion;
+            document.getElementById('ai-output').innerText = appData.currentQuestion;
+
+            const histContainer = document.getElementById('answers-history');
+            histContainer.innerHTML = (appData.history || []).map(item => `
+                <div class="glass rounded-xl p-3 text-xs space-y-1">
+                    <div class="flex justify-between text-slate-400">
+                        <span class="font-bold text-pink-400">${item.author || ''}</span>
+                        <span>${item.date}</span>
+                    </div>
+                    <div class="text-slate-400 italic">${item.q}</div>
+                    <div class="text-white font-medium text-sm pt-1">${item.a}</div>
+                </div>
+            `).join('');
+
+            // Список дел
+            const list = document.getElementById('todo-list');
+            list.innerHTML = (appData.todos || []).map((t, i) => `
+                <div onclick="window.toggleTodo(${i})" class="flex items-center justify-between bg-slate-900/60 p-3 rounded-xl border border-slate-800 cursor-pointer">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-regular ${t.done ? 'fa-circle-check text-pink-500' : 'fa-circle text-slate-500'} text-lg"></i>
+                        <span class="text-sm ${t.done ? 'line-through text-slate-500' : 'text-slate-200'}">${t.text}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Холст (обновляем, если сейчас не рисуем сами)
+            if (!isDrawing) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (appData.canvasData) {
+                    const img = new Image();
+                    img.onload = () => ctx.drawImage(img, 0, 0);
+                    img.src = appData.canvasData;
+                }
+            }
+        }
+
+        // Глобальные функции для кнопок
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            const tabs = ['home', 'ai', 'draw', 'bucket'];
+            document.querySelectorAll('.nav-btn').forEach((btn, idx) => {
+                btn.className = tabs[idx] === tabId 
+                    ? 'nav-btn text-pink-500 flex flex-col items-center gap-1 text-xs' 
+                    : 'nav-btn text-slate-400 flex flex-col items-center gap-1 text-xs';
+            });
+        };
+
+        window.changeMood = function(person) {
+            const key = person === 'p1' ? 'mood1' : 'mood2';
+            let idx = (moods.indexOf(appData[key]) + 1) % moods.length;
+            appData[key] = moods[idx];
+            pushData();
+        };
+
+        window.updateLocation = function() {
+            const el = document.getElementById('distance-text');
+            el.innerText = 'Определяем...';
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(pos => {
+                    const coords = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+                    if (localConfig.role === 'p1') appData.loc1 = coords;
+                    else appData.loc2 = coords;
+                    pushData();
+                }, () => { el.innerText = 'Разрешите доступ к GPS'; });
+            }
+        };
+
+        const fallbackQuestions = {
+            deep: [
+                "В какой момент ты впервые понял(а), что между нами всё серьезно?",
+                "Какую суперспособность ты бы хотел(а) дать нашей паре?",
+                "Что из того, что я делаю каждый день, нравится тебе больше всего?"
+            ],
+            who: [
+                "Кто из нас вероятнее случайно купит совершенно бесполезную, но красивую вещь?",
+                "Кто из нас вероятнее уснет на первых 15 минутах фильма?",
+                "Кто из нас вероятнее первым пойдет мириться после спора?"
+            ],
+            never: [
+                "Я никогда не проверял(а) соцсети партнера перед тем, как познакомиться ближе.",
+                "Я никогда не притворялся(ась), что мне нравится блюдо, чтобы не обидеть.",
+                "Я никогда не забывал(а) про важную дату до самого последнего момента."
+            ],
+            date: [
+                "Устроить слепую дегустацию необычных напитков или десертов дома.",
+                "Поехать вечером в район города, где вы никогда не гуляли пешком, и взять кофе.",
+                "Приготовить вместе новое блюдо под любимый комедийный сериал."
+            ]
+        };
+
+        window.generateAI = async function(type) {
+            const out = document.getElementById('ai-output');
+            out.innerText = "✨ DeepSeek придумывает...";
+
+            const prompts = {
+                deep: `Придумай один нестандартный, теплый и глубокий вопрос для сближения пары (${appData.name1} и ${appData.name2}). Без кавычек и вступлений, только сам вопрос на русском.`,
+                who: `Придумай один забавный и жизненный вопрос в формате "Кто из нас вероятнее..." для пары. Без вступлений, только сам вопрос.`,
+                never: `Придумай одно интересное утверждение для игры "Я никогда не..." для пары. Только одна фраза на русском.`,
+                date: `Придумай одну уютную и оригинальную идею для свидания вечером (дома или в городе). Коротко, 1-2 предложения.`
+            };
+
+            if (!localConfig.apiKey) {
+                const list = fallbackQuestions[type];
+                appData.currentQuestion = list[Math.floor(Math.random() * list.length)];
+                pushData();
+                return;
+            }
+
+            try {
+                const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${localConfig.apiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        model: "deepseek/deepseek-chat:free",
+                        messages: [{ role: "user", content: prompts[type] }]
+                    })
+                });
+                const data = await res.json();
+                appData.currentQuestion = data.choices?.[0]?.message?.content?.trim() || fallbackQuestions[type][0];
+                pushData();
+            } catch (e) {
+                appData.currentQuestion = fallbackQuestions[type][0];
+                pushData();
+            }
+        };
+
+        window.saveAnswer = function() {
+            const input = document.getElementById('ai-answer-input');
+            if (!input.value.trim()) return;
+            const authorName = localConfig.role === 'p1' ? appData.name1 : appData.name2;
+            if (!appData.history) appData.history = [];
+            appData.history.unshift({
+                author: authorName,
+                q: appData.currentQuestion,
+                a: input.value.trim(),
+                date: new Date().toLocaleDateString('ru-RU')
+            });
+            input.value = '';
+            pushData();
+        };
+
+        window.addTodo = function() {
+            const inp = document.getElementById('todo-input');
+            if (!inp.value.trim()) return;
+            if (!appData.todos) appData.todos = [];
+            appData.todos.unshift({ text: inp.value.trim(), done: false });
+            inp.value = '';
+            pushData();
+        };
+
+        window.toggleTodo = function(idx) {
+            appData.todos[idx].done = !appData.todos[idx].done;
+            pushData();
+        };
+
+        // Рисование на холсте
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDraw(e) { isDrawing = true; draw(e); }
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            ctx.beginPath();
+            appData.canvasData = canvas.toDataURL();
+            pushData();
+        }
+        function draw(e) {
+            if (!isDrawing) return;
+            const pos = getPos(e);
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = document.getElementById('draw-color').value;
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+        }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchend', endDraw);
+        canvas.addEventListener('touchmove', draw);
+
+        window.clearCanvas = function() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            appData.canvasData = '';
+            pushData();
+        };
+
+        function loadSettingsForm() {
+            document.getElementById('set-role').value = localConfig.role;
+            document.getElementById('set-name1').value = appData.name1;
+            document.getElementById('set-name2').value = appData.name2;
+            document.getElementById('set-date').value = appData.startDate;
+            document.getElementById('set-dburl').value = localConfig.dbUrl;
+            document.getElementById('set-apikey').value = localConfig.apiKey;
+        }
+
+        window.saveSettings = function() {
+            localConfig.role = document.getElementById('set-role').value;
+            localConfig.dbUrl = document.getElementById('set-dburl').value.trim();
+            localConfig.apiKey = document.getElementById('set-apikey').value.trim();
+            localStorage.setItem('coupleLocalConfig', JSON.stringify(localConfig));
+
+            appData.name1 = document.getElementById('set-name1').value || 'Ислам';
+            appData.name2 = document.getElementById('set-name2').value || 'Таня';
+            appData.startDate = document.getElementById('set-date').value || '2026-02-14';
+
+            initCloudSync();
+            pushData();
+            window.switchTab('home');
+        };
+
+        // Запуск
+        loadSettingsForm();
+        renderAll();
+        initCloudSync();
+    </script>
+</body>
+</html>
